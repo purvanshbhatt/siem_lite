@@ -1,0 +1,12 @@
+{
+  "log_sources": [
+    { "file_path": "auth.log", "log_type": "ssh" },
+    { "file_path": "access.log", "log_type": "apache" },
+    {
+      "file_path": "firewall_logs.csv",
+      "log_type": "csv",
+      "timestamp_column": "event_time"
+    },
+    { "file_path": "Security.evtx", "log_type": "evtx" }
+  ]
+}
