@@ -1,10 +1,13 @@
 import re
-import json
-import argparse
+import json # For JSON config and rules
+import argparse # For command-line argument parsing
+import csv # For CSV log parsing
+import Evtx.Evtx as evtx # For Windows Event Log parsing
 from datetime import datetime, timedelta, timezone
 
-# PARSER FUNCTIONS
+#--------------------------- PARSER FUNCTIONS ---------------------------#
 
+# SSH LOG PARSER
 def parse_ssh_log(log_file_path):
     parsed_logs = []
     log_pattern = re.compile(r"(\w+\s+\d+\s+\d{2}:\d{2}:\d{2})\s+([\w-]+)\s+([\w\d\[\]]+):\s+(.*)")
@@ -21,6 +24,7 @@ def parse_ssh_log(log_file_path):
                 })
     return parsed_logs
 
+# APACHE LOG PARSER
 def parse_apache_log(log_file_path):
     parsed_logs = []
     log_pattern = re.compile(r'([\d\.]+) - - \[(.*?)\] \"(.*?)\" (\d{3}) (\d+)')
@@ -38,7 +42,42 @@ def parse_apache_log(log_file_path):
                 })
     return parsed_logs
 
-# RULE ENGINE
+# CSV EXPORT FUNCTION
+def parse_csv_log(log_file_path, timestamp_column):
+    parsed_logs = []
+    with open(log_file_path, 'r', newline='') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            # This assumes an ISO format timestamp for simplicity
+            timestamp_obj = datetime.fromisoformat(row[timestamp_column])
+
+            # The rest of the row becomes the event data
+            event = {
+                'timestamp': timestamp_obj,
+                'log_source': 'CSV',
+            }
+            event.update(row) # Add all other CSV columns to the event
+            parsed_logs.append(event)
+    return parsed_logs
+
+# WINDOWS EVENT LOG PARSER
+def parse_evtx_log(log_file_path):
+    parsed_logs = []
+    with evtx.Evtx(log_file_path) as log:
+        for record in log.records():
+            # The timestamp is available directly
+            timestamp_obj = record.timestamp()
+            # The rest of the data is in complex XML format
+            event_data_xml = record.xml()
+            # to get things like Event ID, Provider, user, etc.
+            parsed_logs.append({
+                'timestamp': timestamp_obj,
+                'log_source': 'EVTX',
+                'xml_data': event_data_xml # Store the raw XML for now
+            })
+    return parsed_logs
+
+#--------------------------- RULE ENGINE ---------------------------#
 def run_rule_engine(events, rules_file):
     with open(rules_file, 'r') as f: rules = json.load(f)['rules']
     alerts, failed_ssh_logins = [], {}
@@ -86,8 +125,10 @@ def main():
         file_path, log_type = source['file_path'], source['log_type']
         print(f"[*] Processing {file_path} (type: {log_type})...")
         try:
-            if log_type == 'ssh': all_events.extend(parse_ssh_log(file_path))
-            elif log_type == 'apache': all_events.extend(parse_apache_log(file_path))
+            if log_type == 'ssh': all_events.extend(parse_ssh_log(file_path)) # SSH log
+            elif log_type == 'apache': all_events.extend(parse_apache_log(file_path)) # Apache log
+            elif log_type == 'csv': all_events.extend(parse_csv_log(file_path, source['timestamp_column'])) # CSV log with specified timestamp column
+            elif log_type == 'evtx': all_events.extend(parse_evtx_log(file_path)) # Windows Event Log
         except FileNotFoundError:
             print(f"Warning: Log file '{file_path}' not found. Skipping.")
 
