@@ -1,0 +1,25 @@
+{
+  "rules": [
+    {
+      "rule_name": "Directory Traversal Attempt",
+      "type": "single_event",
+      "description": "Detects attempts to access sensitive files like /etc/passwd.",
+      "log_source": "Apache",
+      "conditions": {
+        "field": "uri",
+        "contains": "/etc/passwd"
+      }
+    },
+    {
+      "rule_name": "SSH Brute-Force Detected",
+      "type": "sequence",
+      "description": "Detects 2 or more failed SSH logins from the same IP within 1 minute.",
+      "log_source": "SSH",
+      "conditions": {
+        "event": "Failed password",
+        "threshold": 2,
+        "time_window_minutes": 1
+      }
+    }
+  ]
+}
