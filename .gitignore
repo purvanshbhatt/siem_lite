@@ -1,0 +1,15 @@
+# File: .gitignore
+
+# Ignore the user's actual configuration file
+config.json
+
+# Ignore the virtual environment folder
+venv/
+
+# Ignore sample data files
+*.log
+*.csv
+*.evtx
+
+# Ignore Python cache files
+__pycache__/
