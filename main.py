@@ -1,12 +1,9 @@
-# Paste this entire block into siem_lite/main.py
 import re
 import json
 import argparse
 from datetime import datetime, timedelta, timezone
 
-#==============================================================================
 # PARSER FUNCTIONS
-#==============================================================================
 
 def parse_ssh_log(log_file_path):
     parsed_logs = []
@@ -41,9 +38,7 @@ def parse_apache_log(log_file_path):
                 })
     return parsed_logs
 
-#==============================================================================
 # RULE ENGINE
-#==============================================================================
 def run_rule_engine(events, rules_file):
     with open(rules_file, 'r') as f: rules = json.load(f)['rules']
     alerts, failed_ssh_logins = [], {}
@@ -74,9 +69,7 @@ def run_rule_engine(events, rules_file):
                             failed_ssh_logins[ip] = []
     return alerts
 
-#==============================================================================
 # MAIN EXECUTION
-#==============================================================================
 def main():
     parser = argparse.ArgumentParser(description="SIEM-Lite: A simple log analysis and alerting engine.")
     parser.add_argument('--config', default='config.json', help="Path to the configuration file (default: config.json)")
